@@ -307,11 +307,17 @@ void setup() {
     i2s_write_obj.ws_pin = PCM3060_DAC_WS_PIN;
     i2s_write_obj.sd_pin = PCM3060_DAC_SD_PIN;
     i2s_write_obj.sampling_rate = SAMPLING_FREQ;
+    
+    // XXX Debug LED
+    i2s_write_obj.ws_pin = I2S_PIN_NO_CHANGE;
+    gpio_init(PCM3060_DAC_WS_PIN);
+    gpio_set_dir(PCM3060_DAC_WS_PIN, GPIO_OUT);
+    gpio_put(PCM3060_DAC_WS_PIN, false);
 
     i2s_write_init(&i2s_write_obj);
 
     // 1s timer to debounce DAC power mode
-    add_repeating_timer_ms(-1000, power_dac_timer_callback, NULL, &power_dac_timer);
+    //add_repeating_timer_ms(-1000, power_dac_timer_callback, NULL, &power_dac_timer); // XXX Disabled
 }
 
 /** **************************************************************************
@@ -993,16 +999,24 @@ void set_dac_power(dac_power_mode_t mode) {
     if(dac_power.target == mode)
         return;
     dac_power.target = mode;
-    if(dac_power.state == dac_power.target)
-        return;
-    if(dac_power.state == DAC_POWER_SAVE) {
-        // Enable immediately
-        dac_power.counter = 1;
-        power_dac_timer_callback(&power_dac_timer);
+    // if(dac_power.state == dac_power.target)
+    //     return;
+    // if(dac_power.state == DAC_POWER_SAVE) {
+    //     // Enable immediately
+    //     dac_power.counter = 1;
+    //     power_dac_timer_callback(&power_dac_timer);
+    // } else {
+    //     // Power down by timeout
+    //     dac_power.counter = dac_power.timeout;
+    // }
+    
+    // XXX
+    if(mode == DAC_POWER_NORMAL) {
+        power_up_dac();
     } else {
-        // Power down by timeout
-        dac_power.counter = dac_power.timeout;
+        power_down_dac();
     }
+    gpio_put(PCM3060_DAC_WS_PIN, mode == DAC_POWER_NORMAL);
 }
 
 bool power_dac_timer_callback(repeating_timer_t *timer) {

@@ -39,8 +39,9 @@
 #include "i2s.pio.h"
 
 void i2s_write_init(i2s_obj_t *self) {
+    bool use_ws = (self->ws_pin == I2S_PIN_NO_CHANGE);
     self->pio = pio1;
-    self->pio_program = &i2s_write_program;
+    self->pio_program = use_ws ? &i2s_write_program : &i2s_write_mono_program;
     self->sm = pio_claim_unused_sm(self->pio, true);
     self->prog_offset = pio_add_program(self->pio, self->pio_program);
     pio_sm_init(self->pio, self->sm, self->prog_offset, NULL);
@@ -58,7 +59,7 @@ void i2s_write_init(i2s_obj_t *self) {
     sm_config_set_out_shift(&config, false, true, 32);
     sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);  // double TX FIFO size
 
-    sm_config_set_sideset(&config, 2, false, false);
+    sm_config_set_sideset(&config, use_ws ? 2 : 1, false, false);
     sm_config_set_sideset_pins(&config, self->sck_pin);
     sm_config_set_wrap(&config, self->prog_offset,
             self->prog_offset + self->pio_program->length - 1);
@@ -71,7 +72,8 @@ void i2s_write_init(i2s_obj_t *self) {
     irq_set_enabled(DMA_IRQ_1, true);
 
     gpio_init_i2s(self->pio, self->sm, self->sck_pin, 0, GP_OUTPUT);
-    gpio_init_i2s(self->pio, self->sm, self->ws_pin, 0, GP_OUTPUT);
+    if(use_ws)
+        gpio_init_i2s(self->pio, self->sm, self->ws_pin, 0, GP_OUTPUT);
     gpio_init_i2s(self->pio, self->sm, self->sd_pin, 0, GP_OUTPUT);
 
     dma_configure(self);

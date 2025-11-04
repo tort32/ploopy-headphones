@@ -48,3 +48,21 @@ right_channel:
     out pins, 1             side 0b00
     jmp x--, right_channel  side 0b01
     out pins, 1             side 0b00
+
+
+.program i2s_write_mono
+.side_set 1
+
+set x, 30                   side 1
+
+left_channel:
+    out pins, 1             side 0
+    jmp x-- left_channel    side 1
+    out pins, 1             side 0
+
+set x, 30                   side 1
+
+right_channel:
+    out null, 1             side 0
+    jmp x--, right_channel  side 1
+    out null, 1             side 0
