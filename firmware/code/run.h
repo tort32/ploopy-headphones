@@ -46,6 +46,17 @@
 #define MAX_VOLUME ENCODE_DB(0)
 #define VOLUME_RESOLUTION ENCODE_DB(0.5f)
 
+// 40 steps of 0.5dB gain (from 0.5 to 20dB)
+#define GAIN_20dB_STEPS(x) \
+    (x) * 1.05925f, (x) * 1.12202f, (x) * 1.18850f, (x) * 1.25893f, (x) * 1.33352f, (x) * 1.41254f, (x) * 1.49624f, (x) * 1.58489f, (x) * 1.67880f, (x) * 1.77828f, \
+    (x) * 1.88365f, (x) * 1.99526f, (x) * 2.11349f, (x) * 2.23872f, (x) * 2.37137f, (x) * 2.51189f, (x) * 2.66073f, (x) * 2.81838f, (x) * 2.98538f, (x) * 3.16228f, \
+    (x) * 3.34965f, (x) * 3.54813f, (x) * 3.75837f, (x) * 3.98107f, (x) * 4.21697f, (x) * 4.46684f, (x) * 4.73151f, (x) * 5.01187f, (x) * 5.30884f, (x) * 5.62341f, \
+    (x) * 5.95662f, (x) * 6.30957f, (x) * 6.68344f, (x) * 7.07946f, (x) * 7.49894f, (x) * 7.94328f, (x) * 8.41395f, (x) * 8.91251f, (x) * 9.44061f, (x) * 10.0f
+#define GAIN_DC_TABLE(x) { \
+    (x), GAIN_20dB_STEPS(x), GAIN_20dB_STEPS(x * 10.f), GAIN_20dB_STEPS(x * 100.f), GAIN_20dB_STEPS(x * 1000.f), GAIN_20dB_STEPS(x * 10000.f), \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, \
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+
 typedef struct _audio_state_config {
     uint32_t freq;
     union {

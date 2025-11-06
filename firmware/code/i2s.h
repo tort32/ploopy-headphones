@@ -54,6 +54,7 @@ typedef struct _i2s_obj_t {
     int dma_channel[I2S_NUM_DMA_CHANNELS];
     uint8_t dma_buffer[SIZEOF_DMA_BUFFER_IN_BYTES];
     ring_buf_t ring_buffer;
+    int32_t zero_sample[SAMPLES_PER_FRAME];
 } i2s_obj_t;
 
 extern i2s_obj_t i2s_write_obj;

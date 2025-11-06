@@ -68,6 +68,29 @@ enum vendor_cmds {
     MICROSOFT_COMPATIBLE_ID_FEATURE_DESRIPTOR
 };
 
+// Hardware specific offsets (V), DC voltage measured at the output to compensate for
+#define LEFT_DC_VOLTAGE 0.1015f
+#define RIGHT_DC_VOLTAGE -0.0547f
+// DAC Power voltage (V)
+#define DAC_VCC_VOLTAGE 4.6f
+// Differential amplifier gain
+#define DAC_DIFF_GAIN 5.6f
+// DAC diff output range (V)
+#define DAC_OUTPUT_RANGE (1.6f * DAC_VCC_VOLTAGE)
+#define DAC_SAMPLE_RATIO (1 << 24) / (DAC_DIFF_GAIN * DAC_OUTPUT_RANGE)
+// Generate DC offset compensation tables
+static const int32_t dc_table_left[] = GAIN_DC_TABLE(-LEFT_DC_VOLTAGE * DAC_SAMPLE_RATIO);
+static const int32_t dc_table_right[] = GAIN_DC_TABLE(-RIGHT_DC_VOLTAGE * DAC_SAMPLE_RATIO);
+
+static int32_t clamp_int24(int32_t sample) {
+    if (sample > 8388607)
+        return 8388607;
+    else if (sample < -8388608)
+        return -8388608;
+    else
+        return sample;
+}
+
 int main(void) {
     setup();
 
@@ -94,7 +117,9 @@ static void update_volume()
 {
     if (audio_state._volume != audio_state._target_volume) {
         // PCM3060 volume attenuation:
-        //  0: 0db (default)
+        //  255: 0db (default)
+        //  254: -0.5db
+        //  253: -1db
         //  55: -100db
         //  56..: Mute
         uint8_t buf[3];
@@ -102,6 +127,8 @@ static void update_volume()
         buf[1] = 255 + (audio_state.target_volume[0] / 128); // data left
         buf[2] = 255 + (audio_state.target_volume[1] / 128); // data right
         i2c_write_blocking(i2c0, PCM_I2C_ADDR, buf, 3, false);
+        i2s_write_obj.zero_sample[0] = clamp_int24(dc_table_left[255 - buf[1]]); // left
+        i2s_write_obj.zero_sample[1] = clamp_int24(dc_table_right[255 - buf[2]]); // right
 
         audio_state._volume = audio_state._target_volume;
     }
@@ -155,6 +182,7 @@ static void __no_inline_not_in_flash_func(_as_audio_packet)(struct usb_endpoint 
         x_f16 = fix16_mul( x_f16, preprocessing.postEQGain);
 
         out[i] = (int32_t) norm_fix3_28_to_s16sample(x_f16);
+        out[i] += i2s_write_obj.zero_sample[0]; // DC offset
     }
 
     // Block until core 1 has finished transforming the data
@@ -205,6 +233,7 @@ void __no_inline_not_in_flash_func(core1_entry)() {
             x_f16 = fix16_mul( x_f16, preprocessing.postEQGain);
 
             out[i] = (int32_t) norm_fix3_28_to_s16sample(x_f16);
+            out[i] += i2s_write_obj.zero_sample[1]; // DC offset
         }
 
         // Signal to core 0 that the data has all been transformed

@@ -74,6 +74,8 @@ void i2s_write_init(i2s_obj_t *self) {
     gpio_init_i2s(self->pio, self->sm, self->ws_pin, 0, GP_OUTPUT);
     gpio_init_i2s(self->pio, self->sm, self->sd_pin, 0, GP_OUTPUT);
 
+    self->zero_sample[0] = self->zero_sample[1] = 0;
+
     dma_configure(self);
 
     pio_sm_set_enabled(self->pio, self->sm, true);
@@ -173,7 +175,11 @@ void feed_dma(i2s_obj_t *self, uint8_t *dma_buffer_p) {
             ringbuf_pop(&self->ring_buffer, &dma_buffer_p[i]);
     } else {
         // underflow.  clear buffer to transmit "silence" on the I2S bus
-        memset(dma_buffer_p, 0, SIZEOF_HALF_DMA_BUFFER_IN_BYTES);
+        int32_t *buf = (int32_t *) dma_buffer_p;
+        for (uint32_t i = 0; i < SIZEOF_HALF_DMA_BUFFER_IN_BYTES / 8; i++) {
+            buf[i + 0] = self->zero_sample[0]; // Left
+            buf[i + 1] = self->zero_sample[1]; // Right
+        }
     }
 }
 
