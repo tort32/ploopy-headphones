@@ -176,7 +176,7 @@ void feed_dma(i2s_obj_t *self, uint8_t *dma_buffer_p) {
     } else {
         // underflow.  clear buffer to transmit "silence" on the I2S bus
         int32_t *buf = (int32_t *) dma_buffer_p;
-        for (uint32_t i = 0; i < SIZEOF_HALF_DMA_BUFFER_IN_BYTES / 8; i++) {
+        for (uint32_t i = 0; i < SIZEOF_HALF_DMA_BUFFER_IN_BYTES / 4; i += 2) {
             buf[i + 0] = self->zero_sample[0]; // Left
             buf[i + 1] = self->zero_sample[1]; // Right
         }
