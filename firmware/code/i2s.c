@@ -39,7 +39,7 @@
 #include "i2s.pio.h"
 
 void i2s_write_init(i2s_obj_t *self) {
-    bool use_ws = (self->ws_pin == I2S_PIN_NO_CHANGE);
+    bool use_ws = (self->ws_pin != I2S_PIN_NO_CHANGE);
     self->pio = pio1;
     self->pio_program = use_ws ? &i2s_write_program : &i2s_write_mono_program;
     self->sm = pio_claim_unused_sm(self->pio, true);
